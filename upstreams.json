@@ -1,0 +1,5 @@
+{
+  "workers": [
+    { "host": "sample-app", "port": 8000 }
+  ]
+}

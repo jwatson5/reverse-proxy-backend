@@ -1,0 +1,26 @@
+x-common-certbot: &commoncert
+  image: certbot/certbot:latest
+  env_file:
+    - .env.core
+  volumes:
+    - letsencrypt:/etc/letsencrypt
+    - certbot-webroot:/var/www/certbot
+    - ./scripts:/scripts:ro
+
+services:
+  certbot-init:
+    <<: *commoncert
+    container_name: certbot-init
+    entrypoint: ["/bin/sh", "-lc"]
+    command: "sh /scripts/init-cert.sh"
+
+  certbot-renewer:
+    <<: *commoncert
+    container_name: certbot-renewer
+    profiles: ["renew"]
+    entrypoint: ["/bin/sh", "-lc"]
+    command: "crond -f -l 8"
+
+volumes:
+  letsencrypt:
+  certbot-webroot:

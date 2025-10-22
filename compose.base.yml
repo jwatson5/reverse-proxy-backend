@@ -1,0 +1,32 @@
+services:
+  nginx:
+    image: nginx:stable
+    container_name: nginx
+    env_file:
+      - .env.core
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - letsencrypt:/etc/letsencrypt:ro
+      - certbot-webroot:/var/www/certbot
+      - ./nginx/base.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./scripts:/scripts:ro
+    command: ["nginx", "-g", "daemon off;"]
+    restart: unless-stopped
+
+  sample-app:
+    image: node:18-alpine
+    container_name: sample-app
+    working_dir: /app
+    volumes:
+      - ./sample-app:/app:ro
+    command: ["node", "server.js"]
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+volumes:
+  letsencrypt:
+  certbot-webroot:
