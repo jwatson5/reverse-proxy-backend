@@ -15,14 +15,22 @@ if [ ! -f "$UPSTREAMS_FILE" ]; then
     echo "ERROR: upstreams.json not found at ${UPSTREAMS_FILE}." >&2
     exit 1
 fi
-
 jq -e '
-  (.workers | type == "array" and length > 0)
-  and all(.workers[]; (.host | type == "string" and length > 0)
-                     and (.port | type == "number"
-                               and . == floor
-                               and . >= 1
-                               and . <= 65535)))
+  def valid_worker($w):
+    ($w.host | type == "string") and ($w.host | length > 0)
+    and ($w.port | type == "number")
+    and ($w.port | floor) == $w.port
+    and ($w.port >= 1) and ($w.port <= 65535);
+
+  if (has("workers") | not) then false
+  elif (.workers | type != "array") then false
+  elif (.workers | length) == 0 then false
+  else
+    reduce (.workers[]) as $w (
+      true;
+      . and valid_worker($w)
+    )
+  end
 ' "$UPSTREAMS_FILE" >/dev/null 2>&1 || {
     echo "ERROR: upstreams.json is invalid. Ensure it defines a non-empty workers array with valid host and port values." >&2
     exit 1
