@@ -48,4 +48,10 @@ certbot certonly \
   $STAGING_FLAG
 
 echo "Reloading nginx service..."
-docker compose -f "${PROJECT_DIR}/compose.base.yml" exec -T nginx nginx -s reload || true
+if command -v docker >/dev/null 2>&1; then
+    docker compose -f "${PROJECT_DIR}/compose.base.yml" exec -T nginx nginx -s reload || true
+elif command -v docker-compose >/dev/null 2>&1; then
+    docker-compose -f "${PROJECT_DIR}/compose.base.yml" exec -T nginx nginx -s reload || true
+else
+    echo "WARNING: Docker CLI not available inside certbot container; skipping nginx reload."
+fi
