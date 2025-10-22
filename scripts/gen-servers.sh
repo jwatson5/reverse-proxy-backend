@@ -116,7 +116,8 @@ if [ "$HAS_CERT" -eq 1 ]; then
     fi
     cat >"$TMP_HTTPS" <<EOF
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;
     server_name ${DOMAIN};
 
     ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
