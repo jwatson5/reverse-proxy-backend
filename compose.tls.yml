@@ -11,14 +11,14 @@ services:
   certbot-init:
     <<: *commoncert
     container_name: certbot-init
-    entrypoint: ["/bin/sh", "-lc"]
-    command: "sh /scripts/init-cert.sh"
+    entrypoint: ["/bin/sh", "-c"]
+    command: "/scripts/init-cert.sh"
 
   certbot-renewer:
     <<: *commoncert
     container_name: certbot-renewer
     profiles: ["renew"]
-    entrypoint: ["/bin/sh", "-lc"]
+    entrypoint: ["/bin/sh", "-c"]
     command: "crond -f -l 8"
 
 volumes:
