@@ -43,6 +43,18 @@ CERT_DIR="${PROJECT_DIR}/letsencrypt/live/${DOMAIN}"
 HAS_CERT=0
 if [ -f "${CERT_DIR}/fullchain.pem" ] && [ -f "${CERT_DIR}/privkey.pem" ]; then
     HAS_CERT=1
+elif command -v docker >/dev/null 2>&1; then
+    if docker compose -f "${PROJECT_DIR}/compose.base.yml" exec -T nginx \
+        sh -c "[ -f /etc/letsencrypt/live/${DOMAIN}/fullchain.pem ] && [ -f /etc/letsencrypt/live/${DOMAIN}/privkey.pem ]" 2>/dev/null
+    then
+        HAS_CERT=1
+    fi
+elif command -v docker-compose >/dev/null 2>&1; then
+    if docker-compose -f "${PROJECT_DIR}/compose.base.yml" exec -T nginx \
+        sh -c "[ -f /etc/letsencrypt/live/${DOMAIN}/fullchain.pem ] && [ -f /etc/letsencrypt/live/${DOMAIN}/privkey.pem ]" 2>/dev/null
+    then
+        HAS_CERT=1
+    fi
 fi
 
 TMP_HTTP=$(mktemp "${HTTP_CONF}.XXXXXX")
@@ -91,7 +103,17 @@ mv "$TMP_HTTP" "$HTTP_CONF"
 
 TMP_HTTPS=$(mktemp "${HTTPS_CONF}.XXXXXX")
 if [ "$HAS_CERT" -eq 1 ]; then
-    OPTIONS_FILE="${PROJECT_DIR}/letsencrypt/options-ssl-nginx.conf"
+    OPTIONS_FILE_LOCAL="${PROJECT_DIR}/letsencrypt/options-ssl-nginx.conf"
+    OPTIONS_INCLUDE=""
+    if [ -f "$OPTIONS_FILE_LOCAL" ]; then
+        OPTIONS_INCLUDE="    include /etc/letsencrypt/options-ssl-nginx.conf;"
+    elif [ "$HAS_CERT" -eq 1 ]; then
+        if command -v docker >/dev/null 2>&1 && docker compose -f "${PROJECT_DIR}/compose.base.yml" exec -T nginx sh -c "[ -f /etc/letsencrypt/options-ssl-nginx.conf ]" 2>/dev/null; then
+            OPTIONS_INCLUDE="    include /etc/letsencrypt/options-ssl-nginx.conf;"
+        elif command -v docker-compose >/dev/null 2>&1 && docker-compose -f "${PROJECT_DIR}/compose.base.yml" exec -T nginx sh -c "[ -f /etc/letsencrypt/options-ssl-nginx.conf ]" 2>/dev/null; then
+            OPTIONS_INCLUDE="    include /etc/letsencrypt/options-ssl-nginx.conf;"
+        fi
+    fi
     cat >"$TMP_HTTPS" <<EOF
 server {
     listen 443 ssl http2;
@@ -102,12 +124,8 @@ server {
     ssl_session_cache shared:SSL:10m;
     ssl_session_timeout 1d;
     ssl_prefer_server_ciphers on;
+${OPTIONS_INCLUDE}
 EOF
-    if [ -f "$OPTIONS_FILE" ]; then
-        cat >>"$TMP_HTTPS" <<'EOF'
-    include /etc/letsencrypt/options-ssl-nginx.conf;
-EOF
-    fi
     cat >>"$TMP_HTTPS" <<'EOF'
 
     location /.well-known/acme-challenge/ {
