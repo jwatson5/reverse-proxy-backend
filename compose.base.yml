@@ -10,10 +10,15 @@ services:
     volumes:
       - letsencrypt:/etc/letsencrypt:ro
       - certbot-webroot:/var/www/certbot
-      - ./nginx/base.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/base.conf:/etc/nginx/nginx.conf.template:ro
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./scripts:/scripts:ro
-    command: ["nginx", "-g", "daemon off;"]
+    command:
+      - /bin/sh
+      - -c
+      - >
+        envsubst < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
+        && exec nginx -g 'daemon off;'
     restart: unless-stopped
 
   sample-app:
