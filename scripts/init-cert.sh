@@ -10,12 +10,12 @@ error() {
     exit 1
 }
 
-[ -f "$ENV_FILE" ] || error ".env.core not found at ${ENV_FILE}."
-
-# shellcheck source=/dev/null
-set -a
-. "$ENV_FILE"
-set +a
+if [ -f "$ENV_FILE" ]; then
+    # shellcheck source=/dev/null
+    set -a
+    . "$ENV_FILE"
+    set +a
+fi
 
 DOMAIN=${DOMAIN:-}
 LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:-}
@@ -39,6 +39,7 @@ fi
 
 echo "Requesting certificate for ${DOMAIN}..."
 certbot certonly \
+  --non-interactive \
   --webroot -w /var/www/certbot \
   -d "$DOMAIN" \
   --email "$LETSENCRYPT_EMAIL" \
